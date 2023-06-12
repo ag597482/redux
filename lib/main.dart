@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:redu/utils/shared_pref_helper.dart';
 import 'package:redux/redux.dart';
 
 import 'helper.dart';
@@ -9,15 +10,34 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  int x = 5;
+// Create store
+  final store = Store<int>(counterReducer, initialState: 0);
+
   @override
   Widget build(BuildContext context) {
-    return StoreProvider(
-      store: store,
-      child: MaterialApp(
-        title: 'Redux Counter',
-        theme: ThemeData(primarySwatch: Colors.blue),
-        home: MyHomePage(),
-      ),
+    SharedPreferenceService service = SharedPreferenceService();
+    return Container(
+      child: FutureBuilder<int>(
+        future: service.getVal("count"),
+        builder: (context, snapshot) {
+           if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              } else {
+                return StoreProvider(
+        store: Store<int>(counterReducer, initialState: snapshot.data!),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Redux Counter',
+          theme: ThemeData(primarySwatch: Colors.blue),
+          home: MyHomePage(),
+        ),
+      );
+              }
+        
+      },)
     );
   }
 }
@@ -25,6 +45,7 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(title: Text('Redux Counter')),
       body: Center(
@@ -48,6 +69,13 @@ class MyHomePage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          FloatingActionButton(
+            onPressed: () {
+             StoreProvider.of<int>(context).dispatch(Init());
+            },
+            child: Icon(Icons.refresh),
+          ),
+          SizedBox(height: 16),
           FloatingActionButton(
             onPressed: () {
               StoreProvider.of<int>(context).dispatch(IncrementAction());
